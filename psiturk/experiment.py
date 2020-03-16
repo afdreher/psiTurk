@@ -632,11 +632,11 @@ def update(uid=None):
             one()
     except exc.SQLAlchemyError:
         raise ExperimentApiError("DB error: Unique user not found.")
-    
+
     user.datastring = json.dumps(request.json)
     db_session.add(user)
-    db_session.commit()    
-    
+    db_session.commit()
+
     try:
         data = json.loads(user.datastring)
     except Exception as e:
@@ -654,6 +654,14 @@ def quitter():
     Mark quitter as such.
     """
     unique_id = request.form['uniqueId']
+    app.logger.info("User %s has quit" % unique_id)
+
+    try:
+        from custom import custom_quitter
+        custom_quitter(unique_id)
+    except Exception as e:
+        raise ExperimentApiError('Custom code failed to load with error {}: {}'.format(type(e), str(e)))
+        
     if unique_id[:5] == "debug":
         debug_mode = True
     else:
@@ -704,7 +712,7 @@ def debug_complete():
                 return render_template('closepopup.html')
             else:
                 allow_repeats = CONFIG.getboolean('HIT Configuration', 'allow_repeats')
-                return render_template('complete.html', 
+                return render_template('complete.html',
                     allow_repeats=allow_repeats, worker_id=user.workerid)
 
 
