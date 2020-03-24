@@ -77,7 +77,7 @@ def docopt_cmd(func):
             # We do not need to do the print here.
             return
         return func(self, opt)
-    
+
     return helper_fn
 
 class PsiturkNetworkShell(Cmd, object):
@@ -113,20 +113,20 @@ class PsiturkNetworkShell(Cmd, object):
                 self.poutput(message)
             except PsiturkException as e:
                 self.poutput(e)
-            
+
         return self._cached_amt_services_wrapper
 
     def postcmd(self, *args):
         if not self.quiet:
             self.prompt = self.color_prompt()
         return Cmd.postcmd(self, *args)
-        
+
     def complete(self, text, state):
         ''' Add space after a completion, makes tab completion with
         multi-word commands cleaner. '''
         return Cmd.complete(self, text, state) + ' '
-        
-        
+
+
     def default(self, statement):
         cmd = statement.command
 
@@ -143,35 +143,35 @@ class PsiturkNetworkShell(Cmd, object):
 
     def __init__(self, config, server, sandbox, quiet=False):
         persistent_history_file=config.get('Shell Parameters','persistent_history_file')
-        
+
         # Prevents running of commands by abbreviation
         self.abbrev = False
         self.debug = True
         self.help_path = os.path.join(os.path.dirname(__file__), "shell_help/")
         self.psiturk_header = 'psiTurk command help:'
         self.super_header = 'basic CMD command help:'
-        
+
         self.config = config
         self.quiet = quiet
         self.server = server
-        
+
         self.sandbox = sandbox
         self.sandbox_hits = 0
         self.live_hits = 0
 
         Cmd.__init__(self, persistent_history_file=persistent_history_file)
-        
+
         if not self.amt_services_wrapper:
             sys.exit()
-            
+
         self.maybe_update_hit_tally()
-        
+
         if not self.quiet:
             self.prompt = self.color_prompt()
             self.intro = self.get_intro_prompt()
         else:
             self.intro = ''
-        
+
 
 
     def do_quit(self, _):
@@ -239,7 +239,7 @@ class PsiturkNetworkShell(Cmd, object):
             prompt += ' #HITs:' + str(self.live_hits)
         prompt += ']$ '
         return prompt
-        
+
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
     #   basic command line functions
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
@@ -385,12 +385,12 @@ class PsiturkNetworkShell(Cmd, object):
             else:
                 return
         return True
-    
+
     def do_psiturk_status(self, _):
         ''' Print psiTurk news '''
         self.poutput(self.get_intro_prompt())
-        
-        
+
+
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
     #   Local SQL database commands
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
@@ -536,6 +536,16 @@ class PsiturkNetworkShell(Cmd, object):
                                     '    ________________________',
                                     '    Total: $%.2f' % total]))
 
+            # Add a custom callback to update the experiment, if necessary. I
+            # need to do this to update the database with a given number of
+            # workers.
+            try:
+                from custom import custom_hit_create
+                # Add the created hit_id, ad_id, and number of workers
+                custom_hit_create(hit_id, ad_id, numWorkers)
+            except Exception as e:
+                pass
+
             # Print the Ad Url
             use_psiturk_ad_server = self.config.getboolean(
                 'Shell Parameters', 'use_psiturk_ad_server')
@@ -642,8 +652,8 @@ class PsiturkNetworkShell(Cmd, object):
                 result = self.amt_services_wrapper.approve_assignment_by_assignment_id(
                     assignment_id, all_studies=all_studies)
                 self.poutput(result)
-        
-    
+
+
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
     #   server management
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
@@ -667,9 +677,9 @@ class PsiturkNetworkShell(Cmd, object):
             self.server_log()
         else:
             self.help_server()
-            
+
     server_commands = ('on', 'off', 'restart', 'log', 'help')
-    
+
     def complete_server(self, text, line, begidx, endidx):
         ''' Tab-complete server command '''
         return [i for i in server_commands if i.startswith(text)]
@@ -678,7 +688,7 @@ class PsiturkNetworkShell(Cmd, object):
         ''' Help for server '''
         with open(self.help_path + 'server.txt', 'r') as help_text:
             self.poutput(help_text.read())
-    
+
     def server_on(self):
         ''' Start experiment server '''
         self.server.startup()
@@ -718,7 +728,7 @@ class PsiturkNetworkShell(Cmd, object):
             self.poutput('Server: ' + colorize('status unknown', 'yellow'))
         elif server_status == 'blocked':
             self.poutput('Server: ' + colorize('blocked', 'red'))
-            
+
         # server_status = self.server.is_server_running()  # Not used
         self.update_hit_tally()
         if self.sandbox:
@@ -832,7 +842,7 @@ class PsiturkNetworkShell(Cmd, object):
           hit list [--active | --reviewable] [--all-studies]
           hit help
         """
-        
+
         all_studies = arg['--all-studies']
 
         if arg['create']:
@@ -903,7 +913,7 @@ class PsiturkNetworkShell(Cmd, object):
           worker bonus (--amount <amount> | --auto) [--reason=<reason>] (--all | --hit <hit_id> | <assignment_id> ...) [--override-bonused-status] [--all-studies]
           worker list [--submitted | --approved | --rejected] [(--hit <hit_id> ...)] [--all-studies]
           worker help
-          
+
         Options:
           --reason REASON    the reason...
         """
@@ -993,7 +1003,7 @@ class PsiturkNetworkShell(Cmd, object):
                 results = [
                     self.amt_services_wrapper.bonus_assignment_for_assignment_id(
                         assignment_id, amount, reason, override_bonused_status) for assignment_id in arg['<assignment_id>']]
-            
+
             if results:
                 [self.poutput(_result) for _result in results]
         else:
@@ -1057,7 +1067,7 @@ class PsiturkNetworkShell(Cmd, object):
             self.poutput("Launching browser pointed at your randomized debug link, "
                          "feel free to request another.\n\t" + launch_url)
             webbrowser.open(launch_url, new=1, autoraise=True)
-            
+
     def random_id_generator(self, size=6, chars=string.ascii_uppercase +
                             string.digits):
         ''' Generate random id numbers '''
@@ -1132,7 +1142,7 @@ def run(script=None, execute=None, testfile=None, quiet=False):
         config, server,
         config.getboolean('Shell Parameters', 'launch_in_sandbox_mode'),
         quiet=quiet)
-    
+
     if script:
         shell.runcmds_plus_hooks(['load {}'.format(script)])
     elif execute:

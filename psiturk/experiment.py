@@ -660,7 +660,7 @@ def quitter():
         from custom import custom_quitter
         custom_quitter(unique_id, unique_id[:5])  # id, mode
     except Exception as e:
-        raise ExperimentApiError('Custom code failed to load with error {}: {}'.format(type(e), str(e)))
+        pass
 
     if unique_id[:5] == "debug":
         debug_mode = True
