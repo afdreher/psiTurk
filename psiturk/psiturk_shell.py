@@ -1041,6 +1041,17 @@ class PsiturkNetworkShell(Cmd, object):
                                                                     'adserver_revproxy_host'),
                                                     port)
 
+        debugHitID = "debug" + str(self.random_id_generator())
+        try:
+            print("TRYING TO LOAD CUSTOM DEBUG")
+            from custom import custom_debug
+            # Add the created hit_id, ad_id, and number of workers
+            custom_debug(debugHitID)
+        except Exception as e:
+            print("EXCEPTION IN LOADING CUSTOM DEBUG")
+            print(e)
+            pass
+
         if revproxy_url:
             base_url = revproxy_url
         else:
@@ -1055,7 +1066,7 @@ class PsiturkNetworkShell(Cmd, object):
 
         launch_url = base_url + "?assignmentId=debug" + \
             str(self.random_id_generator()) \
-            + "&hitId=debug" + str(self.random_id_generator()) \
+            + "&hitId=" + debugHitID \
             + "&workerId=debug" + str(self.random_id_generator()
                                       + "&mode=debug")
 
