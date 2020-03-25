@@ -593,6 +593,32 @@ class PsiturkNetworkShell(Cmd, object):
         except Exception as e:
             self.poutput(e)
 
+    @docopt_cmd
+    def do_sequence(self, arg):
+        """
+        Usage:
+          sequence create <identifier> <count>
+          sequence invalidate <identifier>
+        """
+        if arg['create']:
+            try:
+                from custom import custom_create_sequence
+                # Add the created hit_id, ad_id, and number of workers
+                custom_create_sequence(arg['<identifier>'], arg['<count>'])
+            except Exception as e:
+                self.poutput(e)
+                self.poutput("Create sequence is unavailable.  Please define custom_create_squence.")
+
+        elif arg['invalidate']:
+            try:
+                from custom import custom_invalidate_sequence
+                # Add the created hit_id, ad_id, and number of workers
+                custom_invalidate_sequence(arg['<identifier>'])
+            except Exception as e:
+                self.poutput("Invalidate sequence is unavailable.  Please define custom_invalidate_sequence.")
+        else:
+            self.help_server()
+
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
     #   worker management
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
