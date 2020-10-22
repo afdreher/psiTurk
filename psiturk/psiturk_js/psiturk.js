@@ -196,11 +196,18 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 	};
 
 	self.createBlock = function (name, instructions, experiment_fn) {
+		if (!self.blockManager) {
+			self.blockManager = new BlockManager(self);
+		}
+
 		let block = new ExperimentBlock(self, name, instructions, experiment_fn);
-		self.isBlockBased = true;
-		self.blocks.push(block);
+		self.blockManager.add(block);
 		return block; // Return this block even though it has been added
 	}
+
+	self.isBlockBased = function() {
+		return !!self.blockManager; // Does a manager exist?
+	};
 
 	/*  PUBLIC METHODS: */
 	self.preloadImages = function (imagenames) {
@@ -295,11 +302,10 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 
 	};
 
-	self.startBlockTask = function () {
-		console.log('startBlockTask');
+	self.startBlocks = function () {
 		self.saveData();
 
-		$.ajax("inexp", {
+		$.ajax("startblocks", {
 			type: "POST",
 			data: { uniqueId: self.taskdata.id }
 		});
@@ -316,7 +322,24 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 				return "By leaving or reloading this page, you opt out of the experiment.  Are you sure you want to leave the experiment?";
 			});
 		}
+	}
 
+	self.startBlockTask = function () {
+		console.log('startBlockTask');
+		self.saveData();
+
+		$.ajax("inblock", {
+			type: "POST",
+			data: { uniqueId: self.taskdata.id }
+		});
+	};
+
+	self.finishBlock = function () {
+		if(self.blockManager.hasMore()) {
+			self.blockManager.next();
+		} else {
+			console.log('Done with experiment.  Run onComplete, if provided.');
+		}
 	};
 
 	// Notify app that participant has begun main experiment
@@ -360,8 +383,7 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 	taskdata.fetch({ async: false });
 
 	/*  DATA: */
-	self.isBlockBased = false;
-	self.blocks = [];
+	self.blockManager = null; // Does not currently exist
 
 	self.pages = {};
 	self.taskdata = taskdata;
@@ -371,6 +393,7 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 	Backbone.Notifications.on('_psiturk_finishedinstructions', self.startTask);
 	Backbone.Notifications.on('_psiturk_finishedtask', function (msg) { $(window).off("beforeunload"); });
 	Backbone.Notifications.on('_psiturk_finishedblockinstructions', self.startBlockTask);
+	Backbone.Notifications.on('_psiturk_finishedblockexperiment', self.startBlockTask);
 
 
 	$(window).blur(function () {
@@ -398,6 +421,43 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 };
 
 /**
+ * I don't like mixing too many variables into the psiturk object.  I'm going to
+ * isolate the blocks using a block manager.
+ */
+class BlockManager {
+
+	constructor(psiturk) {
+		this.psiturk = psiturk;
+		this.blocks = [];
+		this.currentBlock = 0;
+	}
+
+	add(block) {
+		this.blocks.push(block);
+	}
+
+	start() {
+		this.psiturk.startBlocks;
+		this.currentBlock = 0;
+		this.blocks[this.currentBlock].start();
+	}
+
+	hasMore() {
+		return (this.currentBlock < (this.blocks.length - 1));
+	}
+
+	next() {
+		if (this.hasMore()) {
+			this.currentBlock++;
+			this.blocks[this.currentBlock].start();
+		} else {
+			// Done with the experiment!
+		}
+	}
+
+};
+
+/**
  * Create a block...
  * 
  * I'm going to use E6S classes because I don't really understand how to do
@@ -406,11 +466,21 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
  * WARNING! Make sure you capture the necessary scope with experiment_fn!
  */
 class ExperimentBlock {
+
 	constructor(psiturk, name, instructions, experiment_fn) {
 		this.psiturk = psiturk;
 		this.name = name;
 		this.instructions = instructions;
 		this.experiment = experiment_fn;
+	}
+
+	async start() {
+		// Show instructions if any exist, otherwise jumpt to the experiment
+		if (this.instructions) {
+			this.showInstructions();
+		} else {
+			this.runExperiment();
+		}
 	}
 
 	async showInstructions() {
@@ -428,4 +498,5 @@ class ExperimentBlock {
 	runExperiment() {
 		this.experiment();
 	}
+
 };
