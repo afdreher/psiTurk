@@ -195,14 +195,31 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		return self;
 	};
 
-	self.createBlock = function (name, instructions, experiment_fn) {
+	self.doBlockBasedExperiment = function (options, ...blocks) {
+		self.createBlockManager();
+		if (options) {
+			self.blockManager.onComplete = options.onComplete;
+		}
+
+		// Add each block to the manager
+		blocks.forEach(block => self.addBlock(block));
+
+		self.blockManager.start();
+	}
+	
+	self.createBlockManager = function () {
 		if (!self.blockManager) {
 			self.blockManager = new BlockManager(self);
 		}
+	}
 
-		let block = new ExperimentBlock(self, name, instructions, experiment_fn);
+	self.addBlock = function(block) {
+		self.createBlockManager();
 		self.blockManager.add(block);
-		return block; // Return this block even though it has been added
+	}
+
+	self.createBlock = function (name, instructions, experiment_fn) {
+		return new ExperimentBlock(self, name, instructions, experiment_fn);
 	}
 
 	self.isBlockBased = function() {
@@ -325,20 +342,33 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 	}
 
 	self.startBlockTask = function () {
-		console.log('startBlockTask');
 		self.saveData();
 
 		$.ajax("inblock", {
 			type: "POST",
-			data: { uniqueId: self.taskdata.id }
+			data: { 
+				uniqueId: self.taskdata.id,
+				blockId: self.blockManager.currentBlock().name,
+			 }
 		});
 	};
 
 	self.finishBlock = function () {
+		self.saveData();
+
+		$.ajax("endblock", {
+			type: "POST",
+			data: { 
+				uniqueId: self.taskdata.id,
+				blockId: self.blockManager.currentBlock().name,
+			 }
+		});
+
 		if(self.blockManager.hasMore()) {
 			self.blockManager.next();
 		} else {
 			console.log('Done with experiment.  Run onComplete, if provided.');
+			self.blockManager.finish();
 		}
 	};
 
@@ -423,35 +453,48 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 /**
  * I don't like mixing too many variables into the psiturk object.  I'm going to
  * isolate the blocks using a block manager.
+ * 
+ * Blocks should be added to the block manager using add(...)
+ * Call start() to begin the experiments.
  */
 class BlockManager {
 
 	constructor(psiturk) {
 		this.psiturk = psiturk;
 		this.blocks = [];
-		this.currentBlock = 0;
+		this.currentBlockIndex = 0;
 	}
 
 	add(block) {
 		this.blocks.push(block);
 	}
 
+	currentBlock () {
+		return this.blocks[this.currentBlockIndex];
+	}
+
 	start() {
-		this.psiturk.startBlocks;
-		this.currentBlock = 0;
-		this.blocks[this.currentBlock].start();
+		this.psiturk.startBlocks();
+		this.currentBlockIndex = 0;
+		this.currentBlock().start();
 	}
 
 	hasMore() {
-		return (this.currentBlock < (this.blocks.length - 1));
+		return (this.currentBlockIndex < (this.blocks.length - 1));
 	}
 
 	next() {
 		if (this.hasMore()) {
-			this.currentBlock++;
-			this.blocks[this.currentBlock].start();
+			this.currentBlockIndex++;
+			this.currentBlock().start();
 		} else {
-			// Done with the experiment!
+			this.finish();
+		}
+	}
+
+	finish() {
+		if (this.onComplete) {
+			this.onComplete();
 		}
 	}
 
@@ -489,8 +532,7 @@ class ExperimentBlock {
 			await this.psiturk.preloadPages(this.instructions);
 		}
 
-		// Should this return control the block manager or something?
-		// WWARNING! You have to bind 'this'!
+		// CAUTION! You have to bind 'this'!
 		let callabck = function() {  this.runExperiment(); }.bind(this);
 		this.psiturk.doInstructions(this.instructions, callabck);
 	}

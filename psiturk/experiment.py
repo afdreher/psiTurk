@@ -547,16 +547,41 @@ def start_exp():
             'Task Parameters', 'experiment_code_version')
     )
 
+@app.route('/startblocks', methods=['POST'])
+def startblocks():
+    """
+    AJAX listener that listens for a signal from the user's script when they
+    start seeing the blocks. After the server receives this signal, it will no 
+    longer allow them to re-access the experiment applet (meaning they can't do 
+    part of the experiment and referesh to start over).
+    """
+    app.logger.info("Accessing /startblocks")
+    if not 'uniqueId' in request.form:
+        raise ExperimentError('improper_inputs')
+    unique_id = request.form['uniqueId'] 
+
+    # TODO: UPDATE THIS TO REFLECT BLOCKS
+    try:
+        user = Participant.query.\
+            filter(Participant.uniqueid == unique_id).one()
+        user.status = STARTED
+        user.beginexp = datetime.datetime.now(datetime.timezone.utc)
+        db_session.add(user)
+        db_session.commit()
+        print('Starting block based experiment')
+        resp = {"status": "success"}
+    except exc.SQLAlchemyError:
+        app.logger.error("DB error: Unique user not found.")
+        resp = {"status": "error, uniqueId not found"}
+    return jsonify(**resp)
 
 @app.route('/inblock', methods=['POST'])
 def enterblock():
     """
     AJAX listener that listens for a signal from the user's script when they
-    start a new block (instructions + experiment). After the server receives 
-    this signal, it will no longer allow them to re-access the experiment applet 
-    (meaning they can't do part of the experiment and referesh to start over).
+    start a new block (instructions + experiment).
     """
-    app.logger.info("Accessing /inexp")
+    app.logger.info("Accessing /inblock")
     if not 'uniqueId' in request.form:
         raise ExperimentError('improper_inputs')
     unique_id = request.form['uniqueId'] 
@@ -569,13 +594,38 @@ def enterblock():
         # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
         # db_session.add(user)
         # db_session.commit()
-        print('Starting block!');
+        print('Starting block experiment!')
         resp = {"status": "success"}
     except exc.SQLAlchemyError:
         app.logger.error("DB error: Unique user not found.")
         resp = {"status": "error, uniqueId not found"}
     return jsonify(**resp)
 
+@app.route('/endblock', methods=['POST'])
+def endblock():
+    """
+    AJAX listener that listens for a signal from the user's script when they
+    end the current block.
+    """
+    app.logger.info("Accessing /endblock")
+    if not 'uniqueId' in request.form:
+        raise ExperimentError('improper_inputs')
+    unique_id = request.form['uniqueId'] 
+    
+    # TODO: UPDATE THIS TO REFLECT BLOCKS
+    try:
+        user = Participant.query.\
+            filter(Participant.uniqueid == unique_id).one()
+        user.status = STARTED
+        # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
+        # db_session.add(user)
+        # db_session.commit()
+        print('Done with a block')
+        resp = {"status": "success"}
+    except exc.SQLAlchemyError:
+        app.logger.error("DB error: Unique user not found.")
+        resp = {"status": "error, uniqueId not found"}
+    return jsonify(**resp)
 
 @app.route('/inexp', methods=['POST'])
 def enterexp():
