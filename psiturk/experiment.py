@@ -547,6 +547,7 @@ def start_exp():
             'Task Parameters', 'experiment_code_version')
     )
 
+# This is the replacement for inexp
 @app.route('/startblocks', methods=['POST'])
 def startblocks():
     """
@@ -575,57 +576,86 @@ def startblocks():
         resp = {"status": "error, uniqueId not found"}
     return jsonify(**resp)
 
-@app.route('/inblock', methods=['POST'])
-def enterblock():
-    """
-    AJAX listener that listens for a signal from the user's script when they
-    start a new block (instructions + experiment).
-    """
-    app.logger.info("Accessing /inblock")
-    if not 'uniqueId' in request.form:
-        raise ExperimentError('improper_inputs')
-    unique_id = request.form['uniqueId'] 
+# @app.route('/finishblocks', methods=['POST'])
+# def finishblocks():
+#     """
+#     AJAX listener that listens for a signal from the user's script when they
+#     are done with the block experiment.
+#     """
+#     app.logger.info("Accessing /finishblocks")
+#     if not 'uniqueId' in request.form:
+#         raise ExperimentError('improper_inputs')
+#     unique_id = request.form['uniqueId'] 
 
-    # TODO: UPDATE THIS TO REFLECT BLOCKS
-    try:
-        user = Participant.query.\
-            filter(Participant.uniqueid == unique_id).one()
-        user.status = STARTED
-        # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
-        # db_session.add(user)
-        # db_session.commit()
-        print('Starting block experiment!')
-        resp = {"status": "success"}
-    except exc.SQLAlchemyError:
-        app.logger.error("DB error: Unique user not found.")
-        resp = {"status": "error, uniqueId not found"}
-    return jsonify(**resp)
+#     # TODO: UPDATE THIS TO REFLECT BLOCKS
+#     try:
+#         user = Participant.query.\
+#             filter(Participant.uniqueid == unique_id).one()
+#         # Add a done flag to the blocks
+#         # user.status = STARTED
+#         # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
+#         # db_session.add(user)
+#         # db_session.commit()
+#         print('Finished block based experiment')
+#         resp = {"status": "success"}
+#     except exc.SQLAlchemyError:
+#         app.logger.error("DB error: Unique user not found.")
+#         resp = {"status": "error, uniqueId not found"}
+#     return jsonify(**resp)
 
-@app.route('/endblock', methods=['POST'])
-def endblock():
-    """
-    AJAX listener that listens for a signal from the user's script when they
-    end the current block.
-    """
-    app.logger.info("Accessing /endblock")
-    if not 'uniqueId' in request.form:
-        raise ExperimentError('improper_inputs')
-    unique_id = request.form['uniqueId'] 
+# @app.route('/inblock', methods=['POST'])
+# def enterblock():
+#     """
+#     AJAX listener that listens for a signal from the user's script when they
+#     start a new block (instructions + experiment).
+#     """
+#     app.logger.info("Accessing /inblock")
+#     if not 'uniqueId' in request.form:
+#         raise ExperimentError('improper_inputs')
+#     unique_id = request.form['uniqueId'] 
+
+#     # TODO: UPDATE THIS TO REFLECT BLOCKS
+#     try:
+#         user = Participant.query.\
+#             filter(Participant.uniqueid == unique_id).one()
+
+
+#         # user.status = STARTED
+#         # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
+#         # db_session.add(user)
+#         # db_session.commit()
+#         print('Starting block experiment!')
+#         resp = {"status": "success"}
+#     except exc.SQLAlchemyError:
+#         app.logger.error("DB error: Unique user not found.")
+#         resp = {"status": "error, uniqueId not found"}
+#     return jsonify(**resp)
+
+# @app.route('/endblock', methods=['POST'])
+# def endblock():
+#     """
+#     AJAX listener that listens for a signal from the user's script when they
+#     end the current block.
+#     """
+#     app.logger.info("Accessing /endblock")
+#     if not 'uniqueId' in request.form:
+#         raise ExperimentError('improper_inputs')
+#     unique_id = request.form['uniqueId'] 
     
-    # TODO: UPDATE THIS TO REFLECT BLOCKS
-    try:
-        user = Participant.query.\
-            filter(Participant.uniqueid == unique_id).one()
-        user.status = STARTED
-        # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
-        # db_session.add(user)
-        # db_session.commit()
-        print('Done with a block')
-        resp = {"status": "success"}
-    except exc.SQLAlchemyError:
-        app.logger.error("DB error: Unique user not found.")
-        resp = {"status": "error, uniqueId not found"}
-    return jsonify(**resp)
+#     # TODO: UPDATE THIS TO REFLECT BLOCKS
+#     try:
+#         user = Participant.query.\
+#             filter(Participant.uniqueid == unique_id).one()
+#         user.status = STARTED
+#         # user.beginexp = datetime.datetime.now(datetime.timezone.utc)
+#         # db_session.add(user)
+#         # db_session.commit()
+#         print('Done with a block')
+#         resp = {"status": "success"}
+#     except exc.SQLAlchemyError:
+#         app.logger.error("DB error: Unique user not found.")
+#         resp = {"status": "error, uniqueId not found"}
+#     return jsonify(**resp)
 
 @app.route('/inexp', methods=['POST'])
 def enterexp():

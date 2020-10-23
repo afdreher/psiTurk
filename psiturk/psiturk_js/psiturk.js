@@ -55,6 +55,10 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 			this.listenTo(Backbone.Notifications, '_psiturk_lostfocus', function () { this.addEvent('focus', 'off'); });
 			this.listenTo(Backbone.Notifications, '_psiturk_gainedfocus', function () { this.addEvent('focus', 'on'); });
 			this.listenTo(Backbone.Notifications, '_psiturk_windowresize', function (newsize) { this.addEvent('window_resize', newsize); });
+
+			this.listenTo(Backbone.Notifications, '_psiturk_startblock', function (name) { this.addEvent('start_block', name); });
+			this.listenTo(Backbone.Notifications, '_psiturk_endblock', function (name) { this.addEvent('end_block', name); });
+			this.listenTo(Backbone.Notifications, '_psiturk_blocksfinished', function () { this.addEvent('blocks_finished', null); });
 		},
 
 		addTrialData: function (trialdata) {
@@ -113,7 +117,6 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		var complete_fn = callback;
 
 		var loadPage = function () {
-
 			// show the page
 			psiturk.showPage(instruction_pages[currentscreen]);
 
@@ -131,10 +134,9 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 
 			// Record the time that an instructions page is first presented
 			timestamp = new Date().getTime();
-
 		};
-		var prevPageButtonPress = function () {
 
+		var prevPageButtonPress = function () {
 			// Record the response time
 			var rt = (new Date().getTime()) - timestamp;
 			viewedscreen = currentscreen;
@@ -145,11 +147,9 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 				psiturk.recordTrialData({ "phase": "INSTRUCTIONS", "template": pages[viewedscreen], "indexOf": viewedscreen, "action": "PrevPage", "viewTime": rt });
 				loadPage();
 			}
-
-		}
+		};
 
 		var nextPageButtonPress = function () {
-
 			// Record the response time
 			var rt = (new Date().getTime()) - timestamp;
 			viewedscreen = currentscreen;
@@ -162,11 +162,9 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 				psiturk.recordTrialData({ "phase": "INSTRUCTIONS", "template": pages[viewedscreen], "indexOf": viewedscreen, "action": "NextPage", "viewTime": rt });
 				loadPage();
 			}
-
 		};
 
 		var finish = function () {
-
 			// unbind all instruction related events
 			$('.continue').unbind('click.psiturk.instructionsnav.next');
 			$('.previous').unbind('click.psiturk.instructionsnav.prev');
@@ -179,7 +177,6 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 			// Move on to the experiment 
 			complete_fn();
 		};
-
 
 
 		/* public interface */
@@ -205,22 +202,22 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		blocks.forEach(block => self.addBlock(block));
 
 		self.blockManager.start();
-	}
+	};
 	
 	self.createBlockManager = function () {
 		if (!self.blockManager) {
 			self.blockManager = new BlockManager(self);
 		}
-	}
+	};
 
 	self.addBlock = function(block) {
 		self.createBlockManager();
 		self.blockManager.add(block);
-	}
+	};
 
 	self.createBlock = function (name, instructions, experiment_fn) {
 		return new ExperimentBlock(self, name, instructions, experiment_fn);
-	}
+	};
 
 	self.isBlockBased = function() {
 		return !!self.blockManager; // Does a manager exist?
@@ -294,10 +291,10 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		taskdata.save(undefined, callbacks);
 	};
 
-	self.startTask = function () {
+	self.start = function (type) {
 		self.saveData();
 
-		$.ajax("inexp", {
+		$.ajax(type, {
 			type: "POST",
 			data: { uniqueId: self.taskdata.id }
 		});
@@ -319,55 +316,52 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 
 	};
 
+	self.startTask = function () {
+		self.start("inexp");	
+	};
+
 	self.startBlocks = function () {
+		self.start("startblocks");
+	};
+
+	self.finishedBlocks = function () {
+		Backbone.Notifications.trigger('_psiturk_blocksfinished');
 		self.saveData();
-
-		$.ajax("startblocks", {
-			type: "POST",
-			data: { uniqueId: self.taskdata.id }
-		});
-
-		if (self.taskdata.mode != 'debug') {  // don't block people from reloading in debug mode
-			// Provide opt-out 
-			$(window).on("beforeunload", function () {
-				self.saveData();
-
-				$.ajax("quitter", {
-					type: "POST",
-					data: { uniqueId: self.taskdata.id }
-				});
-				return "By leaving or reloading this page, you opt out of the experiment.  Are you sure you want to leave the experiment?";
-			});
-		}
-	}
+		
+		// $.ajax("finishblocks", {
+		// 	type: "POST",
+		// 	data: { uniqueId: self.taskdata.id }
+		// });
+	};
 
 	self.startBlockTask = function () {
+		Backbone.Notifications.trigger('_psiturk_startblock', self.blockManager.currentBlock().name);
 		self.saveData();
-
-		$.ajax("inblock", {
-			type: "POST",
-			data: { 
-				uniqueId: self.taskdata.id,
-				blockId: self.blockManager.currentBlock().name,
-			 }
-		});
+		// $.ajax("inblock", {
+		// 	type: "POST",
+		// 	data: { 
+		// 		uniqueId: self.taskdata.id,
+		// 		blockId: self.blockManager.currentBlock().name,
+		// 	 }
+		// });
 	};
 
 	self.finishBlock = function () {
+		Backbone.Notifications.trigger('_psiturk_endblock', self.blockManager.currentBlock().name);
 		self.saveData();
 
-		$.ajax("endblock", {
-			type: "POST",
-			data: { 
-				uniqueId: self.taskdata.id,
-				blockId: self.blockManager.currentBlock().name,
-			 }
-		});
+		// $.ajax("endblock", {
+		// 	type: "POST",
+		// 	data: { 
+		// 		uniqueId: self.taskdata.id,
+		// 		blockId: self.blockManager.currentBlock().name,
+		// 	 }
+		// });
 
 		if(self.blockManager.hasMore()) {
 			self.blockManager.next();
 		} else {
-			console.log('Done with experiment.  Run onComplete, if provided.');
+			//console.log('Done with experiment.  Run onComplete, if provided.');
 			self.blockManager.finish();
 		}
 	};
@@ -400,7 +394,7 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		if (instructionController != undefined) {
 			return instructionController.getIndicator();
 		}
-	}
+	};
 
 	// To be fleshed out with backbone views in the future.
 	var replaceBody = function (x) { $('body').html(x); };
@@ -493,6 +487,7 @@ class BlockManager {
 	}
 
 	finish() {
+		this.psiturk.finishedBlocks();
 		if (this.onComplete) {
 			this.onComplete();
 		}
