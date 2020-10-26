@@ -753,7 +753,16 @@ def quitter():
     Mark quitter as such.
     """
     unique_id = request.form['uniqueId']
-    if unique_id[:5] == "debug":
+    app.logger.info("User %s has quit" % unique_id)
+
+    mode = unique_id[:5]
+    try:
+        from custom import custom_quitter
+        custom_quitter(unique_id, mode)
+    except:
+        pass
+
+    if (mode == "debug"):
         debug_mode = True
     else:
         debug_mode = False

@@ -461,6 +461,16 @@ class PsiturkNetworkShell(Cmd, object):
                                     '    ________________________',
                                     '    Total: $%.2f' % total]))
 
+            # Add a custom callback to update the experiment, if necessary. I
+            # need to do this to update the database with a given number of
+            # workers.
+            try:
+                from custom import custom_hit_create
+                # Add the created hit_id, ad_id, and number of workers
+                custom_hit_create(hit_id, ad_id, numWorkers)
+            except Exception as e:
+                pass
+
             # Print the Ad Url
             base = self.config.get_ad_url()
             assignmentid = str(self.random_id_generator()),
@@ -489,6 +499,32 @@ class PsiturkNetworkShell(Cmd, object):
                 "Hint: In OSX, you can open a terminal link using cmd + click")
         except Exception as e:
             self.poutput(e)
+
+    @docopt_cmd
+    def do_sequence(self, arg):
+        """
+        Usage:
+          sequence create <identifier> <count>
+          sequence invalidate <identifier>
+        """
+        if arg['create']:
+            try:
+                from custom import custom_create_sequence
+                # Add the created hit_id, ad_id, and number of workers
+                custom_create_sequence(arg['<identifier>'], arg['<count>'])
+            except Exception as e:
+                self.poutput(e)
+                self.poutput("Create sequence is unavailable.  Please define custom_create_squence.")
+        elif arg['invalidate']:
+            try:
+                from custom import custom_invalidate_sequence
+                # Add the created hit_id, ad_id, and number of workers
+                custom_invalidate_sequence(arg['<identifier>'])
+            except Exception as e:
+                self.poutput("Invalidate sequence is unavailable.  Please define custom_invalidate_sequence.")
+        else:
+            self.help_server()
+
 
     # +-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.+-+.
     #   worker management
@@ -933,9 +969,20 @@ class PsiturkNetworkShell(Cmd, object):
             port = self.config.get('Server Parameters', 'port')
             base_url = f"http://{host}:{port}/ad"
 
+        debugHitID = "debug" + str(self.random_id_generator())
+        try:
+            print("TRYING TO LOAD CUSTOM DEBUG")
+            from custom import custom_debug
+            # Add the created hit_id, ad_id, and number of workers
+            custom_debug(debugHitID)
+        except Exception as e:
+            print("EXCEPTION IN LOADING CUSTOM DEBUG")
+            print(e)
+            pass
+
         launch_url = base_url + "?assignmentId=debug" + \
             str(self.random_id_generator()) \
-            + "&hitId=debug" + str(self.random_id_generator()) \
+            + "&hitId=" + debugHitID \
             + "&workerId=debug" + str(self.random_id_generator()
             + "&mode=debug")
 
