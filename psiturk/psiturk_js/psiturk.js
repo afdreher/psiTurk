@@ -291,7 +291,7 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 		taskdata.save(undefined, callbacks);
 	};
 
-	self.start = function (type) {
+	self._start = function (type) {
 		self.saveData();
 
 		$.ajax(type, {
@@ -317,11 +317,11 @@ var PsiTurk = function (uniqueId, adServerLoc, mode) {
 	};
 
 	self.startTask = function () {
-		self.start("inexp");	
+		self._start("inexp");	
 	};
 
 	self.startBlocks = function () {
-		self.start("startblocks");
+		self._start("startblocks");
 	};
 
 	self.finishedBlocks = function () {
